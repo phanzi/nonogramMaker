@@ -1,0 +1,35 @@
+body {
+  font-family: sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#inputContainer {
+  margin-bottom: 20px;
+}
+#gridContainer {
+  margin-top: 20px;
+}
+table {
+  border-collapse: collapse;
+  user-select: none; /* 드래그 선택 방지 */
+}
+
+td {
+  border: 1px solid black;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  font-size: 10px; /* 힌트 숫자 보일 수 있도록 */
+  user-select: none; /* 혹시 모를 선택 방지 (자식 요소에도 적용) */
+}
+td.hint {
+  background-color: #eee;
+  user-select: none;
+}
+
+td.filled {
+  background-color: black;
+  color: white; /* 힌트 숫자 안 보이게 */
+  user-select: none;
+}
