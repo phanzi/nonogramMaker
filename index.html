@@ -1,11 +1,12 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="UTF-8" />
     <title>나만의 네모로직</title>
     <link rel="stylesheet" href="styles/style.css" />
   </head>
   <body>
-    <h1>나만의 네모로직</h1>
+    <h6>나만의 네모로직</h6>
 
     <div id="inputContainer">
       <label for="nInput">격자 크기 (n):</label>
@@ -15,13 +16,33 @@
 
     <div id="controlsContainer">
       <button id="actionButton">이 그림으로 문제내기</button>
-      <!-- 정답 확인 버튼 추가 -->
       <button id="checkSolutionButton" style="display: none">정답 확인</button>
     </div>
 
-    <div id="gridContainer"></div>
+    <!-- CSS Grid 기반 게임 보드 -->
+    <div id="gameBoardContainer">
+      <!-- gameBoard를 감싸는 컨테이너 (선택적, 전체 정렬이나 크기 제한에 용이) -->
+      <div id="gameBoard">
+        <div id="cornerBox"></div>
+        <!-- 좌상단 빈 공간 또는 추가 UI -->
+        <div id="columnHints" class="hint-area">
+          <!-- 스타일 통일을 위해 class 추가 가능 -->
+          <!-- 열 힌트 div들이 여기에 동적으로 추가됨 -->
+        </div>
+        <div id="rowHints" class="hint-area">
+          <!-- 스타일 통일을 위해 class 추가 가능 -->
+          <!-- 행 힌트 div들이 여기에 동적으로 추가됨 -->
+        </div>
+        <div id="gridPlayArea">
+          <!-- 실제 게임 셀 div들이 여기에 동적으로 추가됨 -->
+        </div>
+      </div>
+    </div>
+
+    <!-- <div id="gridContainer"></div> -->
+    <!-- 만약 gameBoard 방식으로 완전히 전환하면 이 div는 제거하거나 다른 용도로 사용 -->
+    <!-- JavaScript에서 이 ID를 참조하는 부분이 있다면 수정 필요 -->
 
     <script src="dist/main.js"></script>
-    <!-- 컴파일된 JavaScript 파일 경로 -->
   </body>
 </html>

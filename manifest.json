@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "노노그램 게임 (확장)",
+  "version": "1.0",
+  "description": "웹 페이지에서 노노그램 게임을 즐기세요.",
+  "permissions": [],
+  "action": {
+    "default_popup": "index.html"
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}

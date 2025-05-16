@@ -2,226 +2,286 @@
 // HTML 요소 가져오기
 const nInput = document.getElementById("nInput");
 const createGridButton = document.getElementById("createGrid");
-const gridContainer = document.getElementById("gridContainer");
+// 새로운 Grid 레이아웃 요소들
+const gameBoard = document.getElementById("gameBoard"); // 전체 게임 보드 컨테이너
+const cornerBox = document.getElementById("cornerBox");
+const columnHintsContainer = document.getElementById("columnHints");
+const rowHintsContainer = document.getElementById("rowHints");
+const gridPlayArea = document.getElementById("gridPlayArea");
 const actionButton = document.getElementById("actionButton");
-// 정답 확인 버튼 요소 가져오기
 const checkSolutionButton = document.getElementById("checkSolutionButton");
 let n = parseInt(nInput.value) || 5;
-let table;
-let grid = [];
+let gridCells = []; // 플레이 영역의 셀들을 저장할 2차원 배열
+let rowHintDivs = []; // 행 힌트 DIV들을 저장할 배열
+let colHintDivs = []; // 열 힌트 DIV들을 저장할 배열
+let grid = []; // 내부 로직용 데이터 그리드 (유지)
 let solutionGrid = null;
 let isSolvingMode = false;
 let isDragging = false;
-let shouldFill = false;
-// 버튼 상태 업데이트 함수 (정답 확인 버튼 포함)
+let currentDragFillState = false; // 드래그 시작 시 채울지 비울지 결정
+// 버튼 상태 업데이트 함수
 function updateButtonStates() {
-  if (actionButton) {
-    if (isSolvingMode) {
-      actionButton.textContent = "새로 그리기 / 편집하기";
-    } else {
-      actionButton.textContent = "이 그림으로 문제내기";
+    if (actionButton) {
+        actionButton.textContent = isSolvingMode
+            ? "새로 그리기 / 편집하기"
+            : "이 그림으로 문제내기";
     }
-  }
-  if (checkSolutionButton) {
-    // 풀이 모드일 때만 정답 확인 버튼 표시
-    checkSolutionButton.style.display = isSolvingMode ? "inline-block" : "none";
-  }
+    if (checkSolutionButton) {
+        checkSolutionButton.style.display = isSolvingMode ? "inline-block" : "none";
+    }
 }
+// 그리드 및 힌트 초기화 함수
 function initializeGrid(forSolving = false, newNValue) {
-  if (forSolving && solutionGrid) {
-    n = solutionGrid.length;
-    nInput.value = n.toString();
-    grid = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(0));
-    isSolvingMode = true;
-  } else {
-    let inputValue =
-      newNValue !== undefined ? newNValue : parseInt(nInput.value);
-    if (isNaN(inputValue) || inputValue <= 0) {
-      inputValue = 5;
+    if (forSolving && solutionGrid) {
+        n = solutionGrid.length;
+        nInput.value = n.toString();
+        // 풀이용 그리드는 0으로 초기화
+        grid = Array(n)
+            .fill(null)
+            .map(() => Array(n).fill(0));
+        isSolvingMode = true;
     }
-    n = inputValue;
-    nInput.value = n.toString();
-    grid = Array(n)
-      .fill(null)
-      .map(() => Array(n).fill(0));
-    solutionGrid = null;
-    isSolvingMode = false;
-  }
-  gridContainer.innerHTML = "";
-  table = document.createElement("table");
-  for (let i = 0; i <= n; i++) {
-    const row = table.insertRow();
-    for (let j = 0; j <= n; j++) {
-      const cell = row.insertCell();
-      if (i === 0 || j === 0) {
-        cell.classList.add("hint");
-      } else {
-        cell.addEventListener("mousedown", (e) => {
-          if (e.button !== 0) return;
-          isDragging = true;
-          shouldFill = !cell.classList.contains("filled");
-          toggleCell(i - 1, j - 1, shouldFill);
-        });
-        cell.addEventListener("mousemove", (e) => {
-          var _a;
-          if (isDragging) {
-            const targetCell = e.target;
-            if (
-              targetCell &&
-              targetCell.tagName === "TD" &&
-              !targetCell.classList.contains("hint") &&
-              targetCell.parentNode
-            ) {
-              const rowIdx = targetCell.parentNode.rowIndex - 1;
-              const colIdx = targetCell.cellIndex - 1;
-              const currentCellInGrid =
-                (_a = table.rows[rowIdx + 1]) === null || _a === void 0
-                  ? void 0
-                  : _a.cells[colIdx + 1];
-              if (currentCellInGrid === targetCell) {
-                toggleCell(rowIdx, colIdx, shouldFill);
-              }
-            }
-          }
-        });
-      }
+    else {
+        let inputValue = newNValue !== undefined ? newNValue : parseInt(nInput.value);
+        if (isNaN(inputValue) || inputValue <= 1 || inputValue > 30) {
+            // 최소/최대 크기 제한
+            inputValue = 5;
+            alert("격자 크기는 2에서 30 사이로 설정해주세요.");
+        }
+        n = inputValue;
+        nInput.value = n.toString();
+        grid = Array(n)
+            .fill(null)
+            .map(() => Array(n).fill(0));
+        solutionGrid = null;
+        isSolvingMode = false;
     }
-  }
-  gridContainer.appendChild(table);
-  document.addEventListener("mouseup", () => {
-    if (isDragging) isDragging = false;
-  });
-  if (isSolvingMode && solutionGrid) {
-    updateHints(solutionGrid);
-  } else {
-    updateHints(grid);
-  }
-  updateButtonStates(); // 모드 변경 후 버튼 상태 업데이트
-}
-// toggleCell 함수에서 checkSolution() 호출 제거
-function toggleCell(rowIdx, colIdx, fill) {
-  if (rowIdx >= 0 && rowIdx < n && colIdx >= 0 && colIdx < n) {
-    const cell = table.rows[rowIdx + 1].cells[colIdx + 1];
-    if (!cell) return;
-    grid[rowIdx][colIdx] = fill ? 1 : 0;
-    cell.classList.toggle("filled", fill);
-    if (!isSolvingMode) {
-      updateHints(grid);
-    }
-    // 풀이 모드일 때 자동 정답 확인 제거
-    // else { checkSolution(); }
-  }
-}
-function updateHints(sourceGrid) {
-  var _a, _b;
-  if (!sourceGrid || sourceGrid.length === 0 || !table) return;
-  const currentN = sourceGrid.length;
-  // 행 힌트
-  for (let i = 1; i <= currentN; i++) {
-    const rowData = sourceGrid[i - 1];
-    if (!rowData) continue;
-    const hints = [];
-    let count = 0;
-    for (const cellValue of rowData) {
-      if (cellValue === 1) count++;
-      else if (count > 0) {
-        hints.push(count);
-        count = 0;
-      }
-    }
-    if (count > 0) hints.push(count);
-    const hintCell =
-      (_a = table.rows[i]) === null || _a === void 0 ? void 0 : _a.cells[0];
-    if (hintCell) {
-      // 수정: hints 배열의 길이가 0이면 빈 문자열, 아니면 join
-      hintCell.textContent = hints.length > 0 ? hints.join(" ") : ""; // <--- 첫 번째 수정 지점
-    }
-  }
-  // 열 힌트
-  for (let j = 1; j <= currentN; j++) {
-    const colData = [];
-    for (let i = 0; i < currentN; i++) {
-      if (sourceGrid[i] && sourceGrid[i][j - 1] !== undefined)
-        colData.push(sourceGrid[i][j - 1]);
-      else colData.push(0);
-    }
-    const hints = [];
-    let count = 0;
-    for (const cellValue of colData) {
-      if (cellValue === 1) count++;
-      else if (count > 0) {
-        hints.push(count);
-        count = 0;
-      }
-    }
-    if (count > 0) hints.push(count);
-    const hintCell =
-      (_b = table.rows[0]) === null || _b === void 0 ? void 0 : _b.cells[j];
-    if (hintCell) {
-      // 수정: hints 배열의 길이가 0이면 빈 문자열, 아니면 join
-      hintCell.textContent = hints.length > 0 ? hints.join("\n") : ""; // <--- 두 번째 수정 지점
-      hintCell.style.whiteSpace = "pre-wrap"; // 열 힌트는 줄바꿈 유지를 위해 필요
-    }
-  }
-}
-// 정답 확인 함수 (사용자가 버튼을 눌렀을 때만 호출됨)
-function checkSolution() {
-  if (!isSolvingMode || !solutionGrid) {
-    // 이 경우는 보통 checkSolutionButton이 숨겨져 있어서 발생하지 않지만, 안전장치.
-    alert("풀이 모드에서만 정답을 확인할 수 있습니다.");
-    return;
-  }
-  let allCorrect = true;
-  for (let i = 0; i < n; i++) {
+    // 이전 내용 지우기
+    columnHintsContainer.innerHTML = "";
+    rowHintsContainer.innerHTML = "";
+    gridPlayArea.innerHTML = "";
+    // cornerBox.innerHTML = ""; // 필요시
+    // CSS Grid를 위한 --grid-n 변수 설정 (CSS에서 사용)
+    document.documentElement.style.setProperty("--grid-n", n.toString());
+    gridCells = [];
+    rowHintDivs = [];
+    colHintDivs = [];
+    // 1. 열 힌트 영역 DIV 생성
     for (let j = 0; j < n; j++) {
-      // solutionGrid가 null이 아님은 위에서 보장됨
-      if (grid[i][j] !== solutionGrid[i][j]) {
-        allCorrect = false;
-        break;
-      }
+        const hintDiv = document.createElement("div");
+        hintDiv.classList.add("hint-cell", "col-hint"); // CSS 스타일링용 클래스
+        columnHintsContainer.appendChild(hintDiv);
+        colHintDivs.push(hintDiv);
     }
-    if (!allCorrect) break;
-  }
-  if (allCorrect) {
-    alert("축하합니다! 정답입니다!");
-    // (선택) 정답 후 다음 동작
-    // isSolvingMode = false;
-    // updateButtonStates();
-    // initializeGrid(false, n);
-  } else {
-    alert("틀린 부분이 있습니다.");
-  }
+    // 2. 행 힌트 영역 DIV 생성
+    for (let i = 0; i < n; i++) {
+        const hintDiv = document.createElement("div");
+        hintDiv.classList.add("hint-cell", "row-hint"); // CSS 스타일링용 클래스
+        rowHintsContainer.appendChild(hintDiv);
+        rowHintDivs.push(hintDiv);
+    }
+    // 3. 플레이 그리드 영역 셀(DIV) 생성
+    for (let i = 0; i < n; i++) {
+        gridCells[i] = [];
+        for (let j = 0; j < n; j++) {
+            const cellDiv = document.createElement("div");
+            cellDiv.classList.add("grid-cell");
+            cellDiv.dataset.row = i.toString();
+            cellDiv.dataset.col = j.toString();
+            // 마우스 이벤트 (PC)
+            cellDiv.addEventListener("mousedown", (e) => {
+                if (e.button !== 0)
+                    return; // 왼쪽 클릭만
+                isDragging = true;
+                currentDragFillState = !grid[i][j]; // 현재 셀의 반대 상태로 드래그 시작
+                toggleCell(i, j, currentDragFillState);
+                e.preventDefault(); // 드래그 시 텍스트 선택 등 방지
+            });
+            cellDiv.addEventListener("mouseenter", () => {
+                // mousemove 대신 mouseenter 사용
+                if (isDragging) {
+                    toggleCell(i, j, currentDragFillState);
+                }
+            });
+            // 터치 이벤트 (모바일)
+            cellDiv.addEventListener("touchstart", (e) => {
+                isDragging = true;
+                currentDragFillState = !grid[i][j];
+                toggleCell(i, j, currentDragFillState);
+                e.preventDefault();
+            }, { passive: false }); // passive: false로 preventDefault 가능하도록
+            cellDiv.addEventListener("touchmove", (e) => {
+                if (isDragging) {
+                    const touch = e.touches[0];
+                    const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+                    if (targetElement &&
+                        targetElement.classList.contains("grid-cell")) {
+                        const row = parseInt(targetElement.dataset.row);
+                        const col = parseInt(targetElement.dataset.col);
+                        if (!isNaN(row) && !isNaN(col)) {
+                            toggleCell(row, col, currentDragFillState);
+                        }
+                    }
+                    e.preventDefault();
+                }
+            }, { passive: false });
+            gridPlayArea.appendChild(cellDiv);
+            gridCells[i][j] = cellDiv;
+        }
+    }
+    // 전체 문서 레벨에서 드래그 종료 처리
+    const stopDragging = () => {
+        if (isDragging) {
+            isDragging = false;
+        }
+    };
+    document.removeEventListener("mouseup", stopDragging); // 이전 리스너 제거
+    document.addEventListener("mouseup", stopDragging);
+    document.removeEventListener("touchend", stopDragging); // 이전 리스너 제거
+    document.addEventListener("touchend", stopDragging);
+    if (isSolvingMode && solutionGrid) {
+        updateHints(solutionGrid); // 정답 힌트 표시
+        // 풀이 모드에서는 현재 그리드(grid)는 비어있으므로, 셀들도 비워진 상태로 시작
+        gridCells.forEach((row) => row.forEach((cellDiv) => cellDiv.classList.remove("filled")));
+    }
+    else {
+        updateHints(grid); // 현재 그린 그림 기준으로 힌트 표시
+    }
+    updateButtonStates();
 }
+// 셀 상태 변경 함수
+function toggleCell(rowIdx, colIdx, fillState) {
+    var _a;
+    if (rowIdx < 0 || rowIdx >= n || colIdx < 0 || colIdx >= n)
+        return;
+    const cellDiv = (_a = gridCells[rowIdx]) === null || _a === void 0 ? void 0 : _a[colIdx];
+    if (!cellDiv)
+        return;
+    const shouldFill = fillState; // isDragging 중에는 currentDragFillState를 사용
+    // 현재 셀의 상태가 변경하려는 상태와 다를 때만 업데이트
+    if (grid[rowIdx][colIdx] !== (shouldFill ? 1 : 0)) {
+        grid[rowIdx][colIdx] = shouldFill ? 1 : 0;
+        cellDiv.classList.toggle("filled", shouldFill);
+        if (!isSolvingMode) {
+            updateHints(grid); // 그리기 모드일 때만 현재 그리드 기준으로 힌트 업데이트
+        }
+    }
+}
+// 힌트 업데이트 함수
+function updateHints(sourceGridData) {
+    var _a;
+    if (!sourceGridData || sourceGridData.length === 0)
+        return;
+    const currentN = sourceGridData.length;
+    // 행 힌트 업데이트
+    for (let i = 0; i < currentN; i++) {
+        const rowData = sourceGridData[i];
+        if (!rowData || !rowHintDivs[i])
+            continue;
+        const hints = [];
+        let count = 0;
+        for (const cellValue of rowData) {
+            if (cellValue === 1)
+                count++;
+            else if (count > 0) {
+                hints.push(count);
+                count = 0;
+            }
+        }
+        if (count > 0)
+            hints.push(count);
+        rowHintDivs[i].textContent = hints.length > 0 ? hints.join(" ") : "0";
+    }
+    // 열 힌트 업데이트
+    for (let j = 0; j < currentN; j++) {
+        if (!colHintDivs[j])
+            continue;
+        const colData = [];
+        for (let i = 0; i < currentN; i++) {
+            colData.push(((_a = sourceGridData[i]) === null || _a === void 0 ? void 0 : _a[j]) || 0);
+        }
+        const hints = [];
+        let count = 0;
+        for (const cellValue of colData) {
+            if (cellValue === 1)
+                count++;
+            else if (count > 0) {
+                hints.push(count);
+                count = 0;
+            }
+        }
+        if (count > 0)
+            hints.push(count);
+        colHintDivs[j].textContent = hints.length > 0 ? hints.join("\n") : "0";
+    }
+}
+// 정답 확인 함수
+function checkSolution() {
+    if (!isSolvingMode || !solutionGrid) {
+        alert("풀이 모드에서만 정답을 확인할 수 있습니다.");
+        return;
+    }
+    let allCorrect = true;
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            if (grid[i][j] !== solutionGrid[i][j]) {
+                allCorrect = false;
+                break;
+            }
+        }
+        if (!allCorrect)
+            break;
+    }
+    if (allCorrect) {
+        alert("축하합니다! 정답입니다!");
+        // isSolvingMode = false; // (선택) 정답 후 그리기 모드로 전환
+        // updateButtonStates();
+        // initializeGrid(false, n); // (선택) 같은 크기로 새 그리드
+    }
+    else {
+        alert("틀린 부분이 있습니다. 다시 확인해주세요.");
+    }
+}
+// 액션 버튼 클릭 핸들러
 function handleActionButtonClick() {
-  if (isSolvingMode) {
-    initializeGrid(false, n);
-  } else {
-    if (grid && grid.length > 0 && grid.some((row) => row.indexOf(1) !== -1)) {
-      solutionGrid = JSON.parse(JSON.stringify(grid));
-      initializeGrid(true);
-      alert("문제가 출제되었습니다. 풀어보세요!");
-    } else {
-      alert("문제를 만들 그림이 없습니다. 셀을 하나 이상 채워주세요.");
+    if (isSolvingMode) {
+        // "새로 그리기 / 편집하기" -> 그리기 모드로 전환
+        initializeGrid(false, n); // 현재 크기 유지하며 새로 그리기
     }
-  }
+    else {
+        // "이 그림으로 문제내기" -> 풀이 모드로 전환
+        // 그려진 셀이 하나라도 있는지 확인
+        const hasPaintedCells = grid.some((row) => row.some((cell) => cell === 1));
+        if (!hasPaintedCells) {
+            alert("문제를 만들 그림이 없습니다. 셀을 하나 이상 채워주세요.");
+            return;
+        }
+        solutionGrid = JSON.parse(JSON.stringify(grid)); // 현재 그리드를 정답으로 저장 (깊은 복사)
+        initializeGrid(true); // 풀이 모드로 그리드 초기화
+        alert("문제가 출제되었습니다. 풀어보세요!");
+    }
 }
-// 이벤트 리스너
-createGridButton.addEventListener("click", () => {
-  const newNValue = parseInt(nInput.value);
-  initializeGrid(false, newNValue);
-});
+// --- 이벤트 리스너 등록 ---
+if (createGridButton) {
+    createGridButton.addEventListener("click", () => {
+        const newNValue = parseInt(nInput.value);
+        initializeGrid(false, newNValue);
+    });
+}
+else {
+    console.error("ID 'createGrid' 버튼을 찾을 수 없습니다.");
+}
 if (actionButton) {
-  actionButton.addEventListener("click", handleActionButtonClick);
-} else {
-  console.warn("ID 'actionButton' 버튼을 찾을 수 없습니다.");
+    actionButton.addEventListener("click", handleActionButtonClick);
 }
-// 정답 확인 버튼 이벤트 리스너 추가
+else {
+    console.error("ID 'actionButton' 버튼을 찾을 수 없습니다.");
+}
 if (checkSolutionButton) {
-  checkSolutionButton.addEventListener("click", checkSolution);
-} else {
-  console.warn("ID 'checkSolutionButton' 버튼을 찾을 수 없습니다.");
+    checkSolutionButton.addEventListener("click", checkSolution);
 }
-// 초기화
+else {
+    console.error("ID 'checkSolutionButton' 버튼을 찾을 수 없습니다.");
+}
+// --- 초기 그리드 생성 ---
 initializeGrid(false);
