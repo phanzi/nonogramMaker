@@ -44,10 +44,10 @@ function initializeGrid(forSolving = false, newNValue) {
     }
     else {
         let inputValue = newNValue !== undefined ? newNValue : parseInt(nInput.value);
-        if (isNaN(inputValue) || inputValue <= 1 || inputValue > 30) {
+        if (isNaN(inputValue) || inputValue <= 1 || inputValue > 10) {
             // 최소/최대 크기 제한
             inputValue = 5;
-            alert("격자 크기는 2에서 30 사이로 설정해주세요.");
+            alert("격자 크기는 2에서 10 사이로 설정해주세요.");
         }
         n = inputValue;
         nInput.value = n.toString();
@@ -276,8 +276,8 @@ function handleActionButtonClick() {
 }
 function handleCreateRandomProblemClick() {
     const currentN = parseInt(nInput.value) || 5; // 현재 설정된 N값 사용 또는 기본값
-    if (isNaN(currentN) || currentN <= 1 || currentN > 30) {
-        alert("랜덤 문제 생성을 위한 격자 크기가 유효하지 않습니다. (2~30)");
+    if (isNaN(currentN) || currentN <= 1 || currentN > 10) {
+        alert("랜덤 문제 생성을 위한 격자 크기가 유효하지 않습니다. (2~10)");
         return;
     }
     // fillRatio를 조절하여 난이도 변경 가능 (0.4 ~ 0.6 사이가 적당할 수 있음)
