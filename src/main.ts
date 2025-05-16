@@ -3,6 +3,9 @@ const nInput = document.getElementById("nInput") as HTMLInputElement;
 const createGridButton = document.getElementById(
   "createGrid"
 ) as HTMLButtonElement;
+const createRandomProblemButton = document.getElementById(
+  "createRandomProblemButton"
+) as HTMLButtonElement;
 
 // 새로운 Grid 레이아웃 요소들
 const gameBoard = document.getElementById("gameBoard") as HTMLDivElement; // 전체 게임 보드 컨테이너
@@ -254,7 +257,18 @@ function updateHints(sourceGridData: number[][]) {
     colHintDivs[j].textContent = hints.length > 0 ? hints.join("\n") : "0";
   }
 }
-
+// 랜덤 그리드 생성 함수
+function generateRandomGrid(size: number, fillRatio: number = 0.5): number[][] {
+  const randomGrid: number[][] = [];
+  for (let i = 0; i < size; i++) {
+    randomGrid[i] = [];
+    for (let j = 0; j < size; j++) {
+      // fillRatio (0.0 ~ 1.0) 확률로 셀을 채움
+      randomGrid[i][j] = Math.random() < fillRatio ? 1 : 0;
+    }
+  }
+  return randomGrid;
+}
 // 정답 확인 함수
 function checkSolution() {
   if (!isSolvingMode || !solutionGrid) {
@@ -301,7 +315,42 @@ function handleActionButtonClick() {
     alert("문제가 출제되었습니다. 풀어보세요!");
   }
 }
+function handleCreateRandomProblemClick() {
+  const currentN = parseInt(nInput.value) || 5; // 현재 설정된 N값 사용 또는 기본값
+  if (isNaN(currentN) || currentN <= 1 || currentN > 30) {
+    alert("랜덤 문제 생성을 위한 격자 크기가 유효하지 않습니다. (2~30)");
+    return;
+  }
 
+  // fillRatio를 조절하여 난이도 변경 가능 (0.4 ~ 0.6 사이가 적당할 수 있음)
+  const randomSolution = generateRandomGrid(currentN, 0.45);
+
+  // 생성된 그리드가 너무 비어있거나 꽉 차있으면 다시 생성 (선택적 개선)
+  // 이 부분은 필요에 따라 주석 해제하고, 재시도 로직을 좀 더 견고하게 만들 수 있습니다.
+  /*
+  const filledCells = randomSolution.flat().reduce((acc, val) => acc + val, 0);
+  const totalCells = currentN * currentN;
+  let retries = 0; // 무한 루프 방지
+  while ((filledCells < totalCells * 0.1 || filledCells > totalCells * 0.9) && retries < 10) {
+      console.log("생성된 그리드가 너무 편향되어 다시 생성합니다. (시도: " + (retries + 1) + ")");
+      // randomSolution = generateRandomGrid(currentN, 0.45); // 새 randomSolution을 할당해야 함
+      // filledCells = randomSolution.flat().reduce((acc, val) => acc + val, 0);
+      // 위 로직은 실제로는 이 함수를 재귀 호출하거나 루프 내에서 재할당 필요
+      // 간단하게 하려면 일단 이 검증 없이 진행하거나, 이 함수를 재귀 호출
+      handleCreateRandomProblemClick(); // 주의: 스택 오버플로우 가능성, 카운터로 제한 필요
+      return; // 재귀 호출 후 현재 실행 종료
+  }
+  if (retries >= 10) {
+    alert("적절한 랜덤 문제 생성에 실패했습니다. 다시 시도해주세요.");
+    return;
+  }
+  */
+
+  solutionGrid = randomSolution; // 생성된 그리드를 정답으로 설정
+  initializeGrid(true); // 풀이 모드로 그리드 초기화 (solutionGrid 기반 힌트 표시)
+  alert(`${currentN}x${currentN} 랜덤 문제가 생성되었습니다. 풀어보세요!`);
+}
+// ▲▲▲ 여기에 handleCreateRandomProblemClick 함수 추가 ▲▲▲
 // --- 이벤트 리스너 등록 ---
 if (createGridButton) {
   createGridButton.addEventListener("click", () => {
@@ -323,6 +372,13 @@ if (checkSolutionButton) {
 } else {
   console.error("ID 'checkSolutionButton' 버튼을 찾을 수 없습니다.");
 }
-
+if (createRandomProblemButton) {
+  createRandomProblemButton.addEventListener(
+    "click",
+    handleCreateRandomProblemClick
+  );
+} else {
+  console.error("ID 'createRandomProblemButton' 버튼을 찾을 수 없습니다.");
+}
 // --- 초기 그리드 생성 ---
 initializeGrid(false);
